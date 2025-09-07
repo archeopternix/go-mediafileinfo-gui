@@ -17,7 +17,7 @@ func main() {
 	fltk.InitStyles()
 
 	win := fltk.NewWindow(580, 620)
-	win.SetLabel("KeyValueGrid Demo")
+	win.SetLabel("Media File Info GUI")
 	win.Resizable(win)
 	win.Begin()
 
