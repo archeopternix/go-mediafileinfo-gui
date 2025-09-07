@@ -1,23 +1,33 @@
-# go-mediafileinfo-gui 
+# go-mediafileinfo-gui
 
-A Go program that lets you inspect media files for audio and video properties, built on [go-fltk](https://github.com/archeopternix/go-fltk).
-![MediaFileInfo GUI Screenshot](./gui_screenshot.png)
+A Go application for inspecting audio and video file properties using a graphical interface powered by [go-fltk](https://github.com/archeopternix/go-fltk).
 
-## Purpose
+![Screenshot](./gui_screenshot.png)
 
-This program provides a graphical user interface (GUI) for viewing metadata
-of media files such as MP4, AVI, MOV, and more. Users can select one
-video file, and the application will display detailed information including
-file size, duration, format, codec details, resolution, frame rate, aspect ratio,
-bitrate, and audio channels. The GUI is built using go-fltk, and metadata is displayed
-in a table format using gofltk-keyvalue.
-Author: archeopternix
+## Overview
+
+**go-mediafileinfo-gui** offers a convenient way to view detailed metadata for media files such as MP4, AVI, MOV, and more. Simply select a video file in the GUI to display comprehensive information, including:
+
+- File size
+- Duration
+- Format
+- Codec details
+- Resolution
+- Frame rate
+- Aspect ratio
+- Bitrate
+- Audio channels
+
+Metadata is presented in a table, leveraging [gofltk-keyvalue](https://github.com/archeopternix/gofltk-keyvalue).
+
+## Author
+
+Developed by [archeopternix](https://github.com/archeopternix).
 
 ## Repository
 
-https://github.com/archeopternix/go-mediafileinfo-gui
-
+[GitHub: go-mediafileinfo-gui](https://github.com/archeopternix/go-mediafileinfo-gui)
 
 ## License
 
-MIT
+MIT License
