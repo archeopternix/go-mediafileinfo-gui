@@ -1,3 +1,15 @@
+// Media File Info GUI
+//
+// This program provides a graphical user interface (GUI) for viewing metadata
+// of media files such as MP4, AVI, MOV, and more. Users can select one
+// video file, and the application will display detailed information including
+// file size, duration, format, codec details, resolution, frame rate, aspect ratio,
+// bitrate, and audio channels. The GUI is built using go-fltk, and metadata is displayed
+// in a table format using gofltk-keyvalue.
+//
+// Author: archeopternix
+// Repository: https://github.com/archeopternix/go-mediafileinfo-gui
+
 package main
 
 import (
@@ -10,18 +22,32 @@ import (
 	"github.com/archeopternix/gofltk-keyvalue"
 )
 
-var currFile = "example.mp4"
-var kvgrid *keyvalue.KeyValueGrid
+// currFile holds the currently selected filename (default: example.mp4)
+var (
+	// kvgrid is the global reference to the KeyValueGrid for displaying metadata
+	kvgrid *keyvalue.KeyValueGrid
+)
 
+// main is the entry point of the application
 func main() {
-	fltk.InitStyles()
+	fltk.InitStyles() // Initialize custom FLTK styles
 
+	// Create main window
 	win := fltk.NewWindow(580, 620)
 	win.SetLabel("Media File Info GUI")
 	win.Resizable(win)
 	win.Begin()
 
-	// Add a button that calls open() when clicked
+	setupOpenFileButton(win) // Add "Open File" button
+	setupKeyValueGrid(win)   // Add KeyValueGrid for metadata display
+
+	win.End()
+	win.Show()
+	fltk.Run() // Start the FLTK event loop
+}
+
+// setupOpenFileButton creates and configures the "Open File" button
+func setupOpenFileButton(win *fltk.Window) {
 	openFileBtn := fltk.NewButton(10, 30, 80, 70, "Open File")
 	openFileBtn.SetTooltip("Open File")
 	openFileBtn.SetAlign(fltk.ALIGN_IMAGE_OVER_TEXT)
@@ -30,110 +56,114 @@ func main() {
 		slog.Error("button open image", "image:", err)
 	}
 	openFileBtn.SetImage(imgFile)
-	openFileBtn.SetCallback(func() {
-		openFile()
-	})
-
-	// Create the KeyValueGrid (replace NewKeyValueGrid with correct import if needed)
-	grid := keyvalue.NewKeyValueGrid(win, 100, 10, 460, 600)
-	kvgrid = grid
-
-	win.End()
-	win.Show()
-	fltk.Run()
+	openFileBtn.SetCallback(openFile) // Assign openFile callback
 }
 
-// openFile prompts the user to select one or more video files, processes them,
-// and adds them to the scrollable list.
+// setupKeyValueGrid creates the KeyValueGrid widget
+func setupKeyValueGrid(win *fltk.Window) {
+	grid := keyvalue.NewKeyValueGrid(win, 100, 10, 460, 600)
+	kvgrid = grid
+}
+
+// openFile prompts the user to select one or more video files and loads metadata for the first selection
 func openFile() {
-	// Create a new file chooser dialog for video files
 	chooser := fltk.NewFileChooser(
 		".",                                // Default directory
 		"*.{mp4,mpeg,avi,vob,mpg,mov,m2t}", // Video file filter
-		fltk.FileChooser_MULTI,             // Mode: Select multiple files
+		fltk.FileChooser_MULTI,             // Allow multiple selection
 		"Select File",                      // Dialog title
 	)
 	chooser.Show()
 
-	// Wait for the user to make a selection
+	// Wait for user selection
 	for chooser.Shown() {
 		fltk.Wait()
 	}
 
-	// Handle case where no files are selected
-	if len(chooser.Selection()) == 0 {
-		slog.Info("open directory", "no files selected")
-		return
-	}
-
-	list := chooser.Selection() // Process selected files
-
-	// If no valid video files found, log and return
+	list := chooser.Selection()
 	if len(list) == 0 {
 		slog.Info("open files", "no video files selected")
 		return
 	}
-	// currFile = list[0]
-	addMediaInfo(kvgrid, list[0])
+
+	addMediaInfo(kvgrid, list[0]) // Load metadata for the first file
 }
 
+// addMediaInfo gets media info for the file and displays it in the grid
 func addMediaInfo(grid *keyvalue.KeyValueGrid, filename string) {
-	var fps float32
-
-	grid.ClearAll()
+	grid.ClearAll() // Clear previous entries
 
 	info, err := mediafileinfo.GetMediaInfo(filename)
 	if err != nil {
-		slog.Error("Failed to get media info: %v", err)
+		slog.Error("Failed to get media info", "err", err)
+		return
 	}
 
+	// Add general file info
 	grid.Add("File", "Name", info.Filename)
 	grid.Add("File", "Size", info.FileSizeText)
 	grid.Add("File", "Duration", info.DurationText)
 	grid.Add("File", "Format Detail", info.FormatLongName)
 	grid.Add("File", "Format", info.FormatName)
 
+	// Add stream-specific info
 	for _, stream := range info.Streams {
-		if stream.CodecParameters.CodecTypeText != "UNKNOWN" {
-			stext := fmt.Sprintf("Stream %d (%s)", stream.Index, stream.CodecParameters.CodecTypeText)
-			grid.Add(stext, "Codec ID", stream.CodecParameters.CodecIDText)
+		if stream.CodecParameters.CodecTypeText == "UNKNOWN" {
+			continue // Skip unknown streams
+		}
 
-			// video stream?
-			if (stream.CodecParameters.Width > 0) && (stream.CodecParameters.Height > 0) {
-				grid.Add(stext, "Resolution", fmt.Sprintf("%d : %d", stream.CodecParameters.Width, stream.CodecParameters.Height))
-				fps = (float32)(stream.AverageFrameRate.Num) / (float32)(stream.AverageFrameRate.Den)
-				if stream.CodecParameters.FieldOrder > 1 {
-					grid.Add(stext, "FPS", fmt.Sprintf("%.2f (interlaced)", fps))
-				} else {
-					grid.Add(stext, "FPS", fmt.Sprintf("%.2f (progressive)", fps))
-				}
-				if stream.CodecParameters.AspectRatio.Num == 0 {
-					grid.Add(stext, "Aspect Ratio", fmt.Sprintf("1:%d", stream.CodecParameters.AspectRatio.Den))
+		stext := fmt.Sprintf("Stream %d (%s)", stream.Index, stream.CodecParameters.CodecTypeText)
+		grid.Add(stext, "Codec ID", stream.CodecParameters.CodecIDText)
 
-				} else {
-					var ar float32
-					ar = float32(stream.CodecParameters.AspectRatio.Num) / float32(stream.CodecParameters.AspectRatio.Den)
-					grid.Add(stext, "Aspect Ratio", fmt.Sprintf("1:%.2f", ar))
+		// If video stream, show resolution, FPS, aspect ratio
+		if stream.CodecParameters.Width > 0 && stream.CodecParameters.Height > 0 {
+			grid.Add(stext, "Resolution", fmt.Sprintf("%d : %d", stream.CodecParameters.Width, stream.CodecParameters.Height))
 
-				}
-
+			fps := calcFPS(stream.AverageFrameRate.Num, stream.AverageFrameRate.Den)
+			fpsType := "progressive"
+			if stream.CodecParameters.FieldOrder > 1 {
+				fpsType = "interlaced"
 			}
-			grid.Add(stext, "Bitrate", formatBitsPerSecond(stream.CodecParameters.BitRate))
+			grid.Add(stext, "FPS", fmt.Sprintf("%.2f (%s)", fps, fpsType))
 
-			//audio stream?
-			if stream.CodecParameters.Channels > 0 {
-				grid.Add(stext, "Channels", fmt.Sprintf("%d", stream.CodecParameters.Channels))
-			}
+			grid.Add(stext, "Aspect Ratio", formatAspectRatio(stream.CodecParameters.AspectRatio.Num, stream.CodecParameters.AspectRatio.Den))
+		}
+
+		// Bitrate for all streams
+		grid.Add(stext, "Bitrate", formatBitsPerSecond(stream.CodecParameters.BitRate))
+
+		// If audio stream, show channel count
+		if stream.CodecParameters.Channels > 0 {
+			grid.Add(stext, "Channels", fmt.Sprintf("%d", stream.CodecParameters.Channels))
 		}
 	}
 
-	err = mediafileinfo.PrintAVContextJSON(info)
-	if err != nil {
-		slog.Error("Failed to print media info: %v", err)
+	// Print AV context info to the log (for debugging)
+	if err := mediafileinfo.PrintAVContextJSON(info); err != nil {
+		slog.Error("Failed to print media info", "err", err)
 	}
 }
 
-// FormatBitsPerSecond converts an int64 value of bytes into a human-readable string using b/s, kb/s, mb/s, or gb/s (1024 basis).
+// calcFPS calculates frames-per-second from numerator and denominator
+func calcFPS(num, den int) float32 {
+	if den == 0 {
+		return 0
+	}
+	return float32(num) / float32(den)
+}
+
+// formatAspectRatio returns human-readable aspect ratio string
+func formatAspectRatio(num, den int) string {
+	if den == 0 {
+		return "N/A"
+	}
+	if num == 0 {
+		return fmt.Sprintf("1:%d", den)
+	}
+	return fmt.Sprintf("1:%.2f", float32(num)/float32(den))
+}
+
+// formatBitsPerSecond converts bits per second into human-readable units
 // The result is rounded to 2 decimals (e.g., 1536 -> 1.50 KB).
 func formatBitsPerSecond(bits int64) string {
 	const (
