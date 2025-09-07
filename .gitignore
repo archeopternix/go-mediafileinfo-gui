@@ -1,0 +1,12 @@
+# Ignore Linux, macOS, and Windows executables
+*.exe
+*.out
+*.app
+*.bin
+*.dll
+*.so
+*.dylib
+*.elf
+
+# Ignore files with no extension that are likely binaries
+go-mediafileinfo-gui
