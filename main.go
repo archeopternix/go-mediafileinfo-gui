@@ -19,7 +19,7 @@ import (
 
 	fltk "github.com/archeopternix/go-fltk"
 	"github.com/archeopternix/go-mediafileinfo"
-	"github.com/archeopternix/gofltk-keyvalue"
+	keyvalue "github.com/archeopternix/gofltk-keyvalue"
 )
 
 // currFile holds the currently selected filename (default: example.mp4)
@@ -82,7 +82,7 @@ func openFile() {
 
 	list := chooser.Selection()
 	if len(list) == 0 {
-		slog.Info("open files", "no video files selected")
+		slog.Info("open files", "msg", "no video files selected")
 		return
 	}
 
